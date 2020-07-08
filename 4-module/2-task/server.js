@@ -13,7 +13,6 @@ server.on('request', (request, response) => {
   const limitedStream = new LimitSizeStream({limit: 1048576}); // 1Mb
   const filepath = path.join(__dirname, 'files', pathname);
 
-
   switch (request.method) {
     case 'POST':
       if (pathname.includes('/') || pathname.includes('\\')) {
@@ -22,29 +21,29 @@ server.on('request', (request, response) => {
       } else if (fs.existsSync(filepath)) {
         response.statusCode = 409;
         response.end('404 file have already exist');
+      } else if (parseInt((request.headers['content-length']) > 1048576)) {
+        response.statusCode = 413;
+        response.end('413 too big file');
       } else {
-        pipeline(
-            request,
-            limitedStream,
-            fs.createWriteStream(filepath),
-            (err) => {
-              if (err) {
-                if (err.code === 'LIMIT_EXCEEDED') {
-                  request.abort;
-                  response.statusCode = 413;
-                  response.end('413 too big file');
-                } else {
-                  response.statusCode = 500;
-                  response.end('500 bad request');
-                }
+        request.pipe(limitedStream)
+            .on('error', function(error) {
+              if (error.code === 'LIMIT_EXCEEDED') {
+                response.statusCode = 413;
+                response.end('413 too big file');
+                // request.destroy();
+                // limitedStream.unpipe(fs.createWriteStream(filepath));
               } else {
-                response.statusCode = 200;
-                console.log('Pipeline succeeded.');
-                response.end('200 ok');
+                response.statusCode = 500;
+                response.end('500 bad request');
               }
             });
+        limitedStream.pipe(fs.createWriteStream(filepath))
+            .on('error', function() {
+              response.statusCode = 500;
+              response.end('500 bad request');
+            });
+        break;
       }
-      break;
 
     default:
       response.statusCode = 501;
@@ -55,12 +54,16 @@ server.on('request', (request, response) => {
     if (response.finished === false) {
       fs.unlink(filepath, (err) => {
         if (err) {
-          response.statusCode = 500;
           console.error(err);
         }
         console.log(`${filepath} was deleted`);
       });
     }
+  });
+  response.on('finished', function() {
+    response.statusCode = 200;
+    console.log('Pipes succeeded.');
+    response.end('200 ok');
   });
 });
 
