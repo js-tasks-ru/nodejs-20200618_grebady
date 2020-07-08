@@ -1,6 +1,7 @@
 const stream = require('stream');
 const LimitExceededError = require('./LimitExceededError');
 
+
 class LimitSizeStream extends stream.Transform {
   constructor(options) {
     super(options);
@@ -16,7 +17,7 @@ class LimitSizeStream extends stream.Transform {
     callback();
   }
   _flush(callback) {
-    this.push(this.bufer);
+    this.push(this.bufer.toString());
     callback();
   }
 }

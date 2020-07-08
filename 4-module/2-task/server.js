@@ -5,6 +5,7 @@ const fs = require('fs');
 const {pipeline} = require('stream');
 const LimitSizeStream = require('./LimitSizeStream');
 
+
 const server = new http.Server();
 
 server.on('request', (request, response) => {
@@ -32,6 +33,9 @@ server.on('request', (request, response) => {
                   request.abort;
                   response.statusCode = 413;
                   response.end('413 too big file');
+                } else {
+                  response.statusCode = 500;
+                  response.end('500 bad request');
                 }
               } else {
                 response.statusCode = 200;
@@ -47,15 +51,17 @@ server.on('request', (request, response) => {
       response.end('Not implemented');
   }
 
-  // response.on('close', function() {
-  //   fs.unlink(filepath, (err) => {
-  //     if (err) {
-  //       response.statusCode = 500;
-  //       console.error(err);
-  //     }
-  //     console.log('path/file.txt was deleted');
-  //   });
-  // });
+  response.on('close', function() {
+    if (response.finished === false) {
+      fs.unlink(filepath, (err) => {
+        if (err) {
+          response.statusCode = 500;
+          console.error(err);
+        }
+        console.log(`${filepath} was deleted`);
+      });
+    }
+  });
 });
 
 module.exports = server;
