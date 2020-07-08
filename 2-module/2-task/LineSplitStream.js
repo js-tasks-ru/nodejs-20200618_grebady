@@ -10,12 +10,14 @@ class LineSplitStream extends stream.Transform {
 
   _transform(chunk, encoding, callback) {
     let strFromChunk = chunk.toString(this.encoding);
+
     while (strFromChunk.includes(os.EOL)) {
       const indexOs = strFromChunk.indexOf(os.EOL);
       this.push(this.bufer + Buffer.from(strFromChunk.slice(0, indexOs)));
       this.bufer = '';
       strFromChunk = strFromChunk.slice(indexOs + os.EOL.length, strFromChunk.length);
     }
+
     this.bufer += Buffer.from(strFromChunk);
     callback();
   }
