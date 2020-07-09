@@ -2,7 +2,6 @@ const url = require('url');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const {pipeline} = require('stream');
 const LimitSizeStream = require('./LimitSizeStream');
 
 
@@ -10,7 +9,7 @@ const server = new http.Server();
 
 server.on('request', (request, response) => {
   const pathname = url.parse(request.url).pathname.slice(1);
-  const limitedStream = new LimitSizeStream({limit: 1048576}); // 1Mb
+  const limitedStream = new LimitSizeStream({limit: 1048576, emitClose: false}); // 1Mb
   const filepath = path.join(__dirname, 'files', pathname);
 
   switch (request.method) {
@@ -20,7 +19,7 @@ server.on('request', (request, response) => {
         response.end('400 not supported');
       } else if (fs.existsSync(filepath)) {
         response.statusCode = 409;
-        response.end('404 file have already exist');
+        response.end('409 file have already exist');
       } else if (parseInt((request.headers['content-length']) > 1048576)) {
         response.statusCode = 413;
         response.end('413 too big file');
@@ -30,20 +29,31 @@ server.on('request', (request, response) => {
               if (error.code === 'LIMIT_EXCEEDED') {
                 response.statusCode = 413;
                 response.end('413 too big file');
-                // request.destroy();
-                // limitedStream.unpipe(fs.createWriteStream(filepath));
+                fs.unlink(filepath, (err) => {
+                  if (err) {
+                    console.error(err);
+                  }
+                  file.destroy();
+                  console.log(`${filepath} was deleted`);
+                });
               } else {
                 response.statusCode = 500;
                 response.end('500 bad request');
               }
             });
-        limitedStream.pipe(fs.createWriteStream(filepath))
-            .on('error', function() {
+        const file = fs.createWriteStream(filepath, {emitClose: false});
+        limitedStream.pipe(file)
+            .on('error', function(error) {
+              console.log(error);
               response.statusCode = 500;
               response.end('500 bad request');
+            })
+            .on('close', function() {
+              response.statusCode = 201;
+              response.end('201 file has written');
             });
-        break;
       }
+      break;
 
     default:
       response.statusCode = 501;
@@ -56,14 +66,10 @@ server.on('request', (request, response) => {
         if (err) {
           console.error(err);
         }
+        file.destroy();
         console.log(`${filepath} was deleted`);
       });
     }
-  });
-  response.on('finished', function() {
-    response.statusCode = 200;
-    console.log('Pipes succeeded.');
-    response.end('200 ok');
   });
 });
 
