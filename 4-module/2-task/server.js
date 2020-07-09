@@ -30,11 +30,7 @@ server.on('request', (request, response) => {
                 response.statusCode = 413;
                 response.end('413 too big file');
                 fs.unlink(filepath, (err) => {
-                  if (err) {
-                    console.error(err);
-                  }
-                  file.destroy();
-                  console.log(`${filepath} was deleted`);
+
                 });
               } else {
                 response.statusCode = 500;
@@ -44,7 +40,6 @@ server.on('request', (request, response) => {
         const file = fs.createWriteStream(filepath, {emitClose: false});
         limitedStream.pipe(file)
             .on('error', function(error) {
-              console.log(error);
               response.statusCode = 500;
               response.end('500 bad request');
             })
@@ -64,10 +59,8 @@ server.on('request', (request, response) => {
     if (response.finished === false) {
       fs.unlink(filepath, (err) => {
         if (err) {
-          console.error(err);
+
         }
-        file.destroy();
-        console.log(`${filepath} was deleted`);
       });
     }
   });

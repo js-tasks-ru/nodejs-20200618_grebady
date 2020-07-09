@@ -87,7 +87,7 @@ describe('4-module-2-task', () => {
                     'файл big.png не должен оставаться на диске'
                 ).to.be.false;
                 done();
-              }, 100);
+              }, 300);
             });
 
         request.on('error', (err) => {
