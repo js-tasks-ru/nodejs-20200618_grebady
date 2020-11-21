@@ -37,11 +37,11 @@ describe('2-module-1-task', () => {
         expect(err).to.be.instanceOf(LimitExceededError);
         expect(onData.calledTwice, `событие 'data' должно произойти только 2 раза`).to.be.true;
         expect(onData.firstCall.args[0],
-          `при первом вызове события 'data' в обработчик должна быть передана строка 'a'`)
-          .to.equal('a');
+            `при первом вызове события 'data' в обработчик должна быть передана строка 'a'`)
+            .to.equal('a');
         expect(onData.secondCall.args[0],
-          `при втором вызове события 'data' в обработчик должна быть передана строка 'b'`)
-          .to.equal('b');
+            `при втором вызове события 'data' в обработчик должна быть передана строка 'b'`)
+            .to.equal('b');
 
         done();
       });

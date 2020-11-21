@@ -1,15 +1,15 @@
-const url = require('url');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const LimitSizeStream = require('./LimitSizeStream');
+const LimitSizeStream = require('../../2-module/1-task/LimitSizeStream');
 
 
 const server = new http.Server();
+const origin = 'http://localhost:3000/';
 
 server.on('request', (request, response) => {
-  const pathname = url.parse(request.url).pathname.slice(1);
-  const limitedStream = new LimitSizeStream({limit: 1048576, emitClose: false}); // 1Mb
+  const pathname = new URL(request.url, origin).pathname.slice(1);
+  const limitedStream = new LimitSizeStream({limit: 1048576}); // 1Mb
   const filepath = path.join(__dirname, 'files', pathname);
 
   switch (request.method) {
@@ -23,31 +23,32 @@ server.on('request', (request, response) => {
       } else if (parseInt((request.headers['content-length']) > 1048576)) {
         response.statusCode = 413;
         response.end('413 too big file');
-      } else {
-        request.pipe(limitedStream)
-            .on('error', function(error) {
-              if (error.code === 'LIMIT_EXCEEDED') {
-                response.statusCode = 413;
-                response.end('413 too big file');
-                fs.unlink(filepath, (err) => {
+      }
 
-                });
-              } else {
-                response.statusCode = 500;
-                response.end('500 bad request');
-              }
-            });
-        const file = fs.createWriteStream(filepath, {emitClose: false});
-        limitedStream.pipe(file)
-            .on('error', function(error) {
+      request.pipe(limitedStream)
+          .on('error', function(error) {
+            if (error.code === 'LIMIT_EXCEEDED') {
+              response.statusCode = 413;
+              response.end('413 too big file');
+              fs.unlink(filepath, (err) => {
+
+              });
+            } else {
               response.statusCode = 500;
               response.end('500 bad request');
-            })
-            .on('close', function() {
-              response.statusCode = 201;
-              response.end('201 file has written');
-            });
-      }
+            }
+          });
+      const file = fs.createWriteStream(filepath);
+      limitedStream.pipe(file)
+          .on('error', function(error) {
+            response.statusCode = 500;
+            response.end('500 bad request');
+          })
+          .on('close', function() {
+            response.statusCode = 201;
+            response.end('201 file has written');
+          });
+
       break;
 
     default:

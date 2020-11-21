@@ -1,7 +1,7 @@
-const stream = require('stream');
+const {Transform} = require('stream');
 const LimitExceededError = require('./LimitExceededError');
 
-class LimitSizeStream extends stream.Transform {
+class LimitSizeStream extends Transform {
   constructor(options) {
     super(options);
     this.limit = options.limit;
@@ -12,9 +12,9 @@ class LimitSizeStream extends stream.Transform {
     this.dataLength += chunk.length;
     if (this.dataLength > this.limit) {
       return callback(new LimitExceededError());
+    } else {
+      callback(null, chunk);
     }
-    this.push(chunk);
-    callback();
   }
 }
 
