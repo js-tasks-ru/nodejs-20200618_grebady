@@ -17,7 +17,7 @@ server.on('request', (request, response) => {
       if (pathname.includes('/') || pathname.includes('\\')) {
         response.statusCode = 400;
         response.end('400 not supported');
-      } else if (fs.existsSync(filepath)) {
+      } else if (fs.existsSync(filepath) || parseInt(request.headers['content-length']) === 0) {
         response.statusCode = 409;
         response.end('409 file have already exist');
       } else if (parseInt((request.headers['content-length']) > 1048576)) {
