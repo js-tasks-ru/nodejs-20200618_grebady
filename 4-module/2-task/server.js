@@ -23,32 +23,31 @@ server.on('request', (request, response) => {
       } else if (parseInt((request.headers['content-length']) > 1048576)) {
         response.statusCode = 413;
         response.end('413 too big file');
-      }
+      } else {
+        request.pipe(limitedStream)
+            .on('error', function(error) {
+              if (error.code === 'LIMIT_EXCEEDED') {
+                response.statusCode = 413;
+                response.end('413 too big file');
+                fs.unlink(filepath, (err) => {
 
-      request.pipe(limitedStream)
-          .on('error', function(error) {
-            if (error.code === 'LIMIT_EXCEEDED') {
-              response.statusCode = 413;
-              response.end('413 too big file');
-              fs.unlink(filepath, (err) => {
-
-              });
-            } else {
+                });
+              } else {
+                response.statusCode = 500;
+                response.end('500 bad request');
+              }
+            });
+        const file = fs.createWriteStream(filepath);
+        limitedStream.pipe(file)
+            .on('error', function(error) {
               response.statusCode = 500;
               response.end('500 bad request');
-            }
-          });
-      const file = fs.createWriteStream(filepath);
-      limitedStream.pipe(file)
-          .on('error', function(error) {
-            response.statusCode = 500;
-            response.end('500 bad request');
-          })
-          .on('close', function() {
-            response.statusCode = 201;
-            response.end('201 file has written');
-          });
-
+            })
+            .on('close', function() {
+              response.statusCode = 201;
+              response.end('201 file has written');
+            });
+      }
       break;
 
     default:

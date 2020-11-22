@@ -1,49 +1,54 @@
-const LineSplitStream = require('../LineSplitStream');
+const LimitSizeStream = require('../LimitSizeStream');
+const LimitExceededError = require('../LimitExceededError');
 const expect = require('chai').expect;
 const sinon = require('sinon');
-const os = require('os');
 
-describe('2-module-2-task', () => {
-  describe('LineSplitStream', () => {
-    it('стрим разбивает данные по строкам', (done) => {
-      const lines = new LineSplitStream({encoding: 'utf-8'});
+describe('2-module-1-task', () => {
+  describe('LimitSizeStream', () => {
+    it('стрим передает поступающие данные без изменений', (done) => {
+      const limitStream = new LimitSizeStream({limit: 3, encoding: 'utf-8'});
 
       const onData = sinon.spy();
 
-      lines.on('data', onData);
-      lines.on('end', () => {
-        expect(onData.calledTwice, 'событие data должно быть вызвано 2 раза').to.be.true;
-        expect(onData.firstCall.args[0]).to.equal('a');
-        expect(onData.secondCall.args[0]).to.equal('b');
-
+      limitStream.on('data', onData);
+      limitStream.on('end', () => {
+        expect(onData.calledTwice, 'событие \'data\' должно произойти 2 раза').to.be.true;
+        expect(onData.firstCall.args[0],
+            `при первом вызове события 'data' в обработчик должна быть передана строка 'a'`)
+            .to.equal('a');
+        expect(onData.secondCall.args[0],
+            `при втором вызове события 'data' в обработчик должна быть передана строка 'b'`)
+            .to.equal('b');
         done();
       });
 
-      lines.write(`a${os.EOL}b`);
-      lines.end();
+      limitStream.write('a');
+      limitStream.write('b');
+      limitStream.end();
     });
 
-    it('стрим корректно передает данные даже если чанк не завершается переводом строки', (done) => {
-      const lines = new LineSplitStream({encoding: 'utf-8'});
+    it('при превышении лимита выбрасывается ошибка', (done) => {
+      const limitStream = new LimitSizeStream({limit: 2, encoding: 'utf-8'});
 
       const onData = sinon.spy();
 
-      lines.on('data', onData);
-      lines.on('end', () => {
-        expect(onData.calledThrice, 'событие data должно быть вызвано 3 раза').to.be.true;
-        expect(onData.firstCall.args[0]).to.equal('ab');
-        expect(onData.secondCall.args[0]).to.equal('cd');
-        expect(onData.thirdCall.args[0]).to.equal('ef');
+      limitStream.on('data', onData);
+      limitStream.on('error', (err) => {
+        expect(err).to.be.instanceOf(LimitExceededError);
+        expect(onData.calledTwice, `событие 'data' должно произойти только 2 раза`).to.be.true;
+        expect(onData.firstCall.args[0],
+          `при первом вызове события 'data' в обработчик должна быть передана строка 'a'`)
+          .to.equal('a');
+        expect(onData.secondCall.args[0],
+          `при втором вызове события 'data' в обработчик должна быть передана строка 'b'`)
+          .to.equal('b');
 
         done();
       });
 
-      lines.write('a');
-      lines.write(`b${os.EOL}c`);
-      lines.write(`d${os.EOL}e`);
-      lines.write('f');
-
-      lines.end();
+      limitStream.write('a');
+      limitStream.write('b');
+      limitStream.write('c');
     });
   });
 });
