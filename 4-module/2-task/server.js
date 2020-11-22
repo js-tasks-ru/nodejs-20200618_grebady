@@ -17,37 +17,41 @@ server.on('request', (request, response) => {
       if (pathname.includes('/') || pathname.includes('\\')) {
         response.statusCode = 400;
         response.end('400 not supported');
-      } else if (fs.existsSync(filepath) || parseInt(request.headers['content-length']) === 0) {
+        return;
+      }
+      if (fs.existsSync(filepath) || parseInt(request.headers['content-length']) === 0) {
         response.statusCode = 409;
         response.end('409 file have already exist');
-      } else if (parseInt((request.headers['content-length']) > 1048576)) {
+        return;
+      }
+      if (parseInt((request.headers['content-length']) > 1048576)) {
         response.statusCode = 413;
         response.end('413 too big file');
-      } else {
-        request.pipe(limitedStream)
-            .on('error', function(error) {
-              if (error.code === 'LIMIT_EXCEEDED') {
-                response.statusCode = 413;
-                response.end('413 too big file');
-                fs.unlink(filepath, (err) => {
-
-                });
-              } else {
-                response.statusCode = 500;
-                response.end('500 bad request');
-              }
-            });
-        const file = fs.createWriteStream(filepath);
-        limitedStream.pipe(file)
-            .on('error', function(error) {
+        return;
+      }
+      request.pipe(limitedStream)
+          .on('error', function(error) {
+            if (error.code === 'LIMIT_EXCEEDED') {
+              response.statusCode = 413;
+              response.end('413 too big file');
+              fs.unlink(filepath, (err) => {
+                if (err) console.log(err);
+              });
+            } else {
               response.statusCode = 500;
               response.end('500 bad request');
-            })
-            .on('close', function() {
-              response.statusCode = 201;
-              response.end('201 file has written');
-            });
-      }
+            }
+          });
+      const file = fs.createWriteStream(filepath);
+      limitedStream.pipe(file)
+          .on('error', function(error) {
+            response.statusCode = 500;
+            response.end('500 bad request');
+          })
+          .on('close', function() {
+            response.statusCode = 201;
+            response.end('201 file has written');
+          });
       break;
 
     default:
@@ -57,11 +61,9 @@ server.on('request', (request, response) => {
 
   response.on('close', function() {
     if (response.finished === false) {
-      fs.unlink(filepath, (err) => {
-        if (err) {
-
-        }
-      });
+      fs.unlink(filepath, ((err) => {
+        if (err) console.log(err);
+      }));
     }
   });
 });
