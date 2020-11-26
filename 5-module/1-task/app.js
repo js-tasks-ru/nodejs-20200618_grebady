@@ -6,7 +6,7 @@ const ErrorConnectionReset = require('./ErrorConnectReset.js');
 app.use(require('koa-static')(path.join(__dirname, 'public')));
 app.use(require('koa-bodyparser')());
 
-const Router = require('@koa/router');
+const Router = require('koa-router');
 const router = new Router();
 let clients = [];
 
