@@ -2,7 +2,7 @@ const Product = require('../models/Product.js');
 const ObjectID = require('mongodb').ObjectID;
 
 module.exports.productsBySubcategory = async function productsBySubcategory(ctx, next) {
-  const subcategory = ctx.request.query.subcategory;
+  const {subcategory} = ctx.query;
   if (!subcategory) return next();
   const [products] = await Product.find({subcategory: `${subcategory}`});
   if (!products) {
@@ -18,7 +18,7 @@ module.exports.productList = async function productList(ctx, next) {
 };
 
 module.exports.productById = async function productById(ctx, next) {
-  const id = ctx.request.path.split('/')[3];
+  const id = ctx.params.id;
   if (!ObjectID.isValid(id)) ctx.throw(400);
   const [product] = await Product.find({_id: `${id}`});
   if (!product) ctx.throw(404);
