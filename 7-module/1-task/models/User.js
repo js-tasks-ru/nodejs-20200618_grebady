@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const connection = require('../libs/connection');
 const config = require('../config');
+const {ErrWrongPassword, ErrNoSuchUser} = require('../controllers/errors');
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -60,6 +61,23 @@ userSchema.methods.setPassword = async function setPassword(password) {
   this.salt = await generateSalt();
   this.passwordHash = await generatePassword(this.salt, password);
 };
+
+userSchema.statics.login = async function(login, password) {
+  // this === User
+  const user = await this.findOne({email: `${login}`});
+  if (!user) return new ErrNoSuchUser();
+
+  if (! await user.checkPassword(password)) return new ErrWrongPassword();
+  return user;
+};
+
+
+userSchema.methods.loginUser = function(password) {
+  if (!this.checkPassword(password)) {
+    return new ErrWrongPassword();
+  } else return this;
+};
+
 
 userSchema.methods.checkPassword = async function(password) {
   if (!password) return false;

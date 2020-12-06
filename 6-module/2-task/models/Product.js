@@ -29,14 +29,13 @@ const productSchema = new mongoose.Schema({
   },
 
   images: [String],
-
-});
-
-productSchema.set('toJSON', {
-  transform: function(doc, ret, options) {
-    ret.id = ret._id;
-    delete ret._id;
-    delete ret.__v;
+}, {
+  toJSON: {
+    transform: function(doc, ret, options) {
+      ret.id = ret._id;
+      delete ret._id;
+      delete ret.__v;
+    },
   },
 });
 
