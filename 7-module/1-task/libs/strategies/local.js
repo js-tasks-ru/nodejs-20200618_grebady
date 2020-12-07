@@ -1,6 +1,5 @@
 const LocalStrategy = require('passport-local').Strategy;
 const User = require('../../models/User');
-const {ErrNoSuchUser, ErrWrongPassword} = require('../../controllers/errors');
 
 module.exports = new LocalStrategy(
     {usernameField: 'email', session: false},
