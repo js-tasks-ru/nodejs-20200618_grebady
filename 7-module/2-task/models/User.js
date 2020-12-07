@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
     validate: [
       {
         validator(value) {
-          return /^[-.\w]+@([\w-]+\.)+[\w-]{2,12}$/.test(value);
+          return Promise.resolve(/^[-.\w]+@([\w-]+\.)+[\w-]{2,12}$/.test(value));
         },
         message: 'Некорректный email.',
       },
