@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const connection = require('../libs/connection');
 
-const schema = new mongoose.Schema({
+const Session = new mongoose.Schema({
   token: {
     type: String,
     unique: true,
@@ -18,6 +18,6 @@ const schema = new mongoose.Schema({
   },
 });
 
-schema.path('lastVisit').index({expires: '7d'});
+Session.path('lastVisit').index({expires: '7d'});
 
-module.exports = connection.model('Session', schema);
+module.exports = connection.model('Session', Session);
